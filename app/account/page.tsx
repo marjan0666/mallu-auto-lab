@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
+import { SignOutButton } from "@/components/SignOutButton";
 import type { Order } from "@/lib/types";
 
 export default async function AccountPage() {
@@ -18,8 +19,13 @@ export default async function AccountPage() {
 
   return (
     <div className="container-page py-12">
-      <h1 className="text-2xl font-bold text-zinc-900">My account</h1>
-      <p className="mt-1 text-sm text-zinc-600">{user.email}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">My account</h1>
+          <p className="mt-1 text-sm text-zinc-600">{user.email}</p>
+        </div>
+        <SignOutButton />
+      </div>
 
       <h2 className="mt-8 text-lg font-semibold text-zinc-900">Order history</h2>
 
