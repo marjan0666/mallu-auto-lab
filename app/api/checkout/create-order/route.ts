@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRazorpayClient } from "@/lib/razorpay";
+import { validateDiscountCode } from "@/lib/discount";
 import type { CartLine } from "@/lib/types";
 
 const lineSchema = z.object({
@@ -20,6 +21,7 @@ const bodySchema = z.object({
   lines: z.array(lineSchema).min(1),
   contactEmail: z.string().email(),
   contactPhone: z.string().min(6),
+  discountCode: z.string().nullable().optional(),
   shippingAddress: z.object({
     full_name: z.string().min(1),
     phone: z.string().min(6),
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { lines, contactEmail, contactPhone, shippingAddress } = parsed.data;
+  const { lines, contactEmail, contactPhone, shippingAddress, discountCode } = parsed.data;
 
   const admin = createAdminClient();
 
@@ -118,7 +120,19 @@ export async function POST(request: Request) {
     });
   }
 
-  const total = subtotal; // extend here if shipping/tax rules are added later
+  let discountAmount = 0;
+  let appliedDiscountCode: string | null = null;
+
+  if (discountCode) {
+    const result = await validateDiscountCode(admin, discountCode, subtotal);
+    if (!result.valid) {
+      return NextResponse.json({ error: result.message }, { status: 400 });
+    }
+    discountAmount = result.amount;
+    appliedDiscountCode = result.code ?? null;
+  }
+
+  const total = Math.max(subtotal - discountAmount, 0); // extend here if shipping/tax rules are added later
 
   const supabase = createClient();
   const {
@@ -136,6 +150,8 @@ export async function POST(request: Request) {
       contact_email: contactEmail,
       contact_phone: contactPhone,
       shipping_address: shippingAddress,
+      discount_code: appliedDiscountCode,
+      discount_amount: discountAmount,
     })
     .select("*")
     .single();

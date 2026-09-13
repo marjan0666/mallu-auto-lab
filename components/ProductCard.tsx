@@ -2,11 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
+import { LOW_STOCK_THRESHOLD } from "@/lib/constants";
 
 export function ProductCard({ product }: { product: Product }) {
   const image = product.images[0];
   const onSale =
     product.compare_at_price && product.compare_at_price > product.price;
+  const lowStock = product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
   return (
     <Link
@@ -47,6 +49,11 @@ export function ProductCard({ product }: { product: Product }) {
             </span>
           )}
         </div>
+        {lowStock && (
+          <p className="mt-1 text-xs font-medium text-amber-600">
+            Only {product.stock} left
+          </p>
+        )}
       </div>
     </Link>
   );

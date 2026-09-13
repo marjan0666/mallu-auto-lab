@@ -37,6 +37,15 @@ export function Header() {
           </Link>
         </nav>
 
+        <form action="/shop" method="get" className="hidden max-w-[200px] flex-1 md:block">
+          <input
+            type="search"
+            name="q"
+            placeholder="Search products…"
+            className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </form>
+
         <div className="flex items-center gap-4">
           <Link
             href={isSignedIn ? "/account" : "/login"}
@@ -60,6 +69,15 @@ export function Header() {
         <Link href="/shop">Shop</Link>
         <Link href="/about">About</Link>
       </nav>
+
+      <form action="/shop" method="get" className="border-t border-zinc-100 px-4 py-2 md:hidden">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search products…"
+          className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        />
+      </form>
     </header>
   );
 }

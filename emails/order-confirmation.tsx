@@ -60,6 +60,21 @@ export function OrderConfirmationEmail({ order, items }: Props) {
             ))}
           </Section>
 
+          {order.discount_amount > 0 && (
+            <Row>
+              <Column>
+                <Text style={{ margin: 0, color: "#16a34a" }}>
+                  Discount {order.discount_code ? `(${order.discount_code})` : ""}
+                </Text>
+              </Column>
+              <Column align="right">
+                <Text style={{ margin: 0, color: "#16a34a" }}>
+                  −{formatPrice(order.discount_amount, order.currency)}
+                </Text>
+              </Column>
+            </Row>
+          )}
+
           <Row style={{ borderTop: "1px solid #e4e4e7", paddingTop: "12px" }}>
             <Column>
               <Text style={{ fontWeight: 700 }}>Total</Text>

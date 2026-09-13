@@ -4,21 +4,43 @@ import { formatPrice } from "@/lib/format";
 import { deleteProduct } from "./actions";
 import type { Product } from "@/lib/types";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
   const supabase = createClient();
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
+  let query = supabase.from("products").select("*").order("created_at", { ascending: false });
+
+  if (searchParams.q) {
+    query = query.ilike("title", `%${searchParams.q}%`);
+  }
+
+  const { data: products } = await query;
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-zinc-900">Products</h1>
-        <Link href="/admin/products/new" className="btn-primary">
-          + New product
-        </Link>
+        <div className="flex items-center gap-3">
+          <a href="/admin/products/export" className="btn-secondary text-sm">
+            Export CSV
+          </a>
+          <Link href="/admin/products/new" className="btn-primary">
+            + New product
+          </Link>
+        </div>
       </div>
+
+      <form method="get" className="mt-4">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search products…"
+          defaultValue={searchParams.q}
+          className="input max-w-xs"
+        />
+      </form>
 
       <div className="mt-6 divide-y divide-zinc-200 rounded-lg border border-zinc-200">
         {((products ?? []) as Product[]).map((product) => (
@@ -45,7 +67,7 @@ export default async function AdminProductsPage() {
           </div>
         ))}
         {(!products || products.length === 0) && (
-          <p className="p-4 text-sm text-zinc-500">No products yet.</p>
+          <p className="p-4 text-sm text-zinc-500">No products found.</p>
         )}
       </div>
     </div>
