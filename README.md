@@ -9,7 +9,7 @@ management.
 ## Stack
 
 - **Next.js 14** (App Router, TypeScript, Tailwind CSS)
-- **Supabase** — Postgres database, Google OAuth login, Storage for product images
+- **Supabase** — Postgres database, email/password login, Storage for product images
 - **Razorpay** — payments (Orders API + Checkout + webhook)
 - **Resend** — order confirmation & admin notification emails
 - **Vercel** — hosting
@@ -41,18 +41,30 @@ npm install
    (0002 also creates a public Storage bucket named `products` — check
    **Storage** in the dashboard to confirm it exists.)
 
-## 2. Enable Google sign-in
+## 2. Auth: email/password + Resend for auth emails
 
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
-   create an **OAuth client ID** (type: Web application).
-2. Add this **Authorized redirect URI** (from Supabase: **Authentication →
-   Providers → Google** shows the exact callback URL):
-   `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`
-3. In Supabase **Authentication → Providers → Google**, paste the Client ID
-   and Client Secret from Google, and enable the provider.
-4. In Supabase **Authentication → URL Configuration**, set **Site URL** to
-   your local dev URL for now (`http://localhost:3000`) — you'll update this
-   to your Vercel domain after deploying (step 7).
+Sign-in uses Supabase's built-in email/password auth (`/login`, `/signup`,
+`/forgot-password`, `/reset-password`). Supabase can send the confirmation
+and password-reset emails itself, but by default it uses a shared, rate-limited
+sender — route them through Resend instead:
+
+1. In Supabase, go to **Project Settings → Authentication → SMTP Settings**
+   and enable **Custom SMTP**.
+2. Fill in:
+   - Sender email: an address on your Resend-verified domain (e.g.
+     `noreply@yourdomain.com`)
+   - Sender name: `Mallu Auto Lab`
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: your Resend **API key**
+3. Save. Supabase will now deliver signup-confirmation and password-reset
+   emails through Resend.
+4. In Supabase **Authentication → URL Configuration**:
+   - Set **Site URL** to your local dev URL for now (`http://localhost:3000`)
+     — you'll update this to your Vercel domain after deploying (step 8).
+   - Add `http://localhost:3000/auth/confirm` to **Redirect URLs** (and your
+     production equivalent later).
 
 ## 3. Set up Razorpay
 
@@ -99,9 +111,9 @@ true/false per variant, not real inventory counts — the script sets stock to
 npm run dev
 ```
 
-Visit http://localhost:3000. Sign in with Google once (via the "Sign in"
-link), then make yourself an admin by running this in the Supabase SQL
-Editor:
+Visit http://localhost:3000. Create an account once (via "Sign in" → "Sign
+up", then confirm via the email Resend sends you), then make yourself an
+admin by running this in the Supabase SQL Editor:
 
 ```sql
 update public.profiles set is_admin = true where email = 'you@example.com';
@@ -122,12 +134,8 @@ Reload and visit http://localhost:3000/admin.
 ### After deploying
 
 - **Supabase → Authentication → URL Configuration**: set **Site URL** to
-  your production domain, and add it (plus `/auth/callback`) to **Redirect
-  URLs**.
-- **Google Cloud Console**: add your production domain to **Authorized
-  JavaScript origins**, and
-  `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback` should already be
-  the only redirect URI needed (Supabase brokers the OAuth flow).
+  your production domain, and add `https://YOUR-DOMAIN/auth/confirm` to
+  **Redirect URLs**.
 - **Razorpay → Settings → Webhooks**: add endpoint
   `https://YOUR-DOMAIN/api/webhooks/razorpay`, subscribe to
   `payment.captured`, and copy the generated **Webhook Secret** into
@@ -143,7 +151,10 @@ app/                      Pages & API routes (Next.js App Router)
   admin/                  Admin panel (products, collections, orders, homepage content)
   api/checkout/           Razorpay order creation + payment verification
   api/webhooks/razorpay/  Razorpay webhook (backstop for payment confirmation)
-  auth/callback/          Supabase OAuth callback handler
+  auth/confirm/           Handles signup-confirmation & password-reset links
+  login/, signup/,        Email/password auth pages
+  forgot-password/,
+  reset-password/
 components/               Shared UI + admin form components
 lib/                      Supabase clients, Razorpay/Resend helpers, cart store, types
 emails/                   React Email templates sent via Resend
