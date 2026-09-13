@@ -23,8 +23,39 @@ export default function CheckoutPage() {
   const [hydrated, setHydrated] = useState(false);
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState<ShippingAddress>(emptyAddress);
+  const [discountInput, setDiscountInput] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    amount: number;
+    message: string;
+  } | null>(null);
 
   useEffect(() => setHydrated(true), []);
+
+  async function handleApplyDiscount() {
+    setApplying(true);
+    setDiscountError(null);
+    try {
+      const res = await fetch("/api/checkout/validate-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: discountInput, subtotal: subtotal() }),
+      });
+      const data = await res.json();
+      if (!data.valid) {
+        setDiscountError(data.message ?? "Invalid code.");
+        setAppliedDiscount(null);
+        return;
+      }
+      setAppliedDiscount({ code: data.code, amount: data.amount, message: data.message });
+    } catch {
+      setDiscountError("Could not check that code. Please try again.");
+    } finally {
+      setApplying(false);
+    }
+  }
 
   if (!hydrated) return null;
 
@@ -143,15 +174,64 @@ export default function CheckoutPage() {
               <span>{formatPrice(line.price * line.quantity)}</span>
             </div>
           ))}
+          <div className="border-t border-zinc-200 pt-4">
+            <div className="flex gap-2">
+              <input
+                className="input"
+                placeholder="Discount code"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+                disabled={!!appliedDiscount}
+              />
+              {appliedDiscount ? (
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0"
+                  onClick={() => {
+                    setAppliedDiscount(null);
+                    setDiscountInput("");
+                    setDiscountError(null);
+                  }}
+                >
+                  Remove
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-secondary shrink-0"
+                  disabled={applying || !discountInput}
+                  onClick={handleApplyDiscount}
+                >
+                  {applying ? "Checking…" : "Apply"}
+                </button>
+              )}
+            </div>
+            {discountError && <p className="mt-1 text-xs text-red-600">{discountError}</p>}
+            {appliedDiscount && (
+              <p className="mt-1 text-xs text-green-600">{appliedDiscount.message}</p>
+            )}
+          </div>
+
+          <div className="flex justify-between text-sm">
+            <span>Subtotal</span>
+            <span>{formatPrice(subtotal())}</span>
+          </div>
+          {appliedDiscount && (
+            <div className="flex justify-between text-sm text-green-600">
+              <span>Discount ({appliedDiscount.code})</span>
+              <span>−{formatPrice(appliedDiscount.amount)}</span>
+            </div>
+          )}
           <div className="flex justify-between border-t border-zinc-200 pt-4 text-base font-semibold">
             <span>Total</span>
-            <span>{formatPrice(subtotal())}</span>
+            <span>{formatPrice(Math.max(subtotal() - (appliedDiscount?.amount ?? 0), 0))}</span>
           </div>
 
           <RazorpayButton
             contactEmail={email}
             contactPhone={address.phone}
             shippingAddress={address}
+            discountCode={appliedDiscount?.code ?? null}
             disabled={!formValid}
           />
         </div>

@@ -20,11 +20,13 @@ export function RazorpayButton({
   contactEmail,
   contactPhone,
   shippingAddress,
+  discountCode,
   disabled,
 }: {
   contactEmail: string;
   contactPhone: string;
   shippingAddress: ShippingAddress;
+  discountCode: string | null;
   disabled: boolean;
 }) {
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,7 @@ export function RazorpayButton({
           contactEmail,
           contactPhone,
           shippingAddress,
+          discountCode,
         }),
       });
       const data = await res.json();

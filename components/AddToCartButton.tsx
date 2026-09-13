@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/cart-store";
+import { LOW_STOCK_THRESHOLD } from "@/lib/constants";
 import type { Product, ProductVariant } from "@/lib/types";
 
 export function AddToCartButton({
@@ -24,6 +25,7 @@ export function AddToCartButton({
   const price = selectedVariant?.price_override ?? product.price;
   const stock = selectedVariant ? selectedVariant.stock : product.stock;
   const outOfStock = stock <= 0 || (selectedVariant && !selectedVariant.is_available);
+  const lowStock = !outOfStock && stock <= LOW_STOCK_THRESHOLD;
 
   function handleAdd() {
     addLine({
@@ -84,6 +86,11 @@ export function AddToCartButton({
             +
           </button>
         </div>
+        {lowStock && (
+          <span className="text-xs font-medium text-amber-600">
+            Only {stock} left
+          </span>
+        )}
       </div>
 
       <div className="flex gap-3">

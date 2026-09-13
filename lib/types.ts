@@ -75,10 +75,23 @@ export interface Order {
   razorpay_order_id: string | null;
   razorpay_payment_id: string | null;
   razorpay_signature: string | null;
+  discount_code: string | null;
+  discount_amount: number;
   notes: string | null;
   created_at: string;
   updated_at: string;
   items?: OrderItem[];
+}
+
+export interface DiscountCode {
+  id: string;
+  code: string;
+  discount_type: "percent" | "fixed";
+  discount_value: number;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OrderItem {
