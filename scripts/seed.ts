@@ -13,7 +13,9 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
-import "dotenv/config";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
 
 const SOURCE = process.env.SOURCE_STORE_URL ?? "https://malluautolab.com";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -48,7 +50,7 @@ interface ShopifyProduct {
   id: number;
   title: string;
   handle: string;
-  body_html: string;
+  body_html: string | null;
   product_type: string;
   tags: string[];
   variants: ShopifyVariant[];
@@ -59,11 +61,12 @@ interface ShopifyCollection {
   id: number;
   handle: string;
   title: string;
-  body_html: string;
+  body_html: string | null;
   image: { src: string } | null;
 }
 
-function stripHtml(html: string) {
+function stripHtml(html: string | null | undefined) {
+  if (!html) return "";
   return html
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
